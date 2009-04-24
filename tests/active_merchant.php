@@ -18,10 +18,6 @@ $test_files = array(
     'gateway', 
     'notification', 
     'util', 
-    'world_pay_helper', 
-    'world_pay_notification', 
-    'world_pay'
-    
 /**/
 );
 

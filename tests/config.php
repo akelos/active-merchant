@@ -1,6 +1,6 @@
 <?php
 
-define('AK_FRAMEWORK_DIR', '/var/src/akelos');
+define('AK_FRAMEWORK_DIR', '/home/kevin/workspace/akelos_framework/trunk');
 define('DS', DIRECTORY_SEPARATOR);
 define('AK_BASE_DIR', realpath(dirname(__FILE__).str_repeat(DIRECTORY_SEPARATOR.'..', 5)));
 define('AK_PLUGINS_DIR', realpath(dirname(__FILE__).str_repeat(DIRECTORY_SEPARATOR.'..', 2)));

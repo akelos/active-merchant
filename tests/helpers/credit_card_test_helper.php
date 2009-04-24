@@ -9,27 +9,27 @@ class ActiveMerchantCreditCardTestHelper
             'month' => 9, 
             'year' => date('Y') + 1, 
             'first_name' => 'Longbob', 
-            'last_name' => 'Longsen',
+            'last_name' => 'Longsen', 
             'verification_value' => '123', 
             'type' => 'visa'
         );
         ActiveMerchant::import('credit_card');
         return new ActiveMerchantCreditCard(array_merge($defaults, $options));
     }
-    /*
-    public function assertValid($validateable) {
+    public static function getAddress($options = array())
+    {
+        $defaults = array(
+            'name' => 'Jim Smith', 
+            'address1' => '1234 My Street', 
+            'address2' => 'Apt 1', 
+            'company' => 'Widgets Inc', 
+            'city' => 'Ottawa', 
+            'state' => 'ON', 
+            'zip' => 'K1C2N6', 
+            'country' => 'CA', 
+            'phone' => '(555)555-5555', 
+            'fax' => '(555)555-6666'
+        );
+        return array_merge($defaults, $options);
     }
-    
-    def assert_valid(validateable)
-      clean_backtrace do
-        assert validateable.valid?, "Expected to be valid"
-      end
-    end
-    
-    def assert_not_valid(validateable)
-      clean_backtrace do
-        assert_false validateable.valid?, "Expected to not be valid"
-      end
-    end
-    */
 }

@@ -28,38 +28,17 @@ php tests/lib/notification.php
 Usage
 --------------------------------
 <?php
-// Send requests to the gateway's test servers
-ActiveMerchantBase.setMode('test');
-
-// Create a new credit card object
-$credit_card = new ActiveMerchantCreditCard(
-    array(
-        'number'     => '4111111111111111',
-        'month'      => '8',
-        'year'       => '2009',
-        'first_name' => 'Tobias',
-        'last_name'  => 'Luetke',
-        'verification_value'  => '123' 
-    )
+$tendollar = 1000;
+$creditcard = new ActiveMerchantCreditCard (
+    :number => '4111111111111111',
+    :month => 8,
+    :year => 2006,
+    :first_name => 'Longbob',
+    :last_name => 'Longsen'
 );
-
-if($credit_card->isValid()) {
-
-    // Create a gateway object to the TrustCommerce service
-    $gateway = new ActiveMerchantTrustCommerceGateway(
-        array(
-            'login'    => 'TestMerchant',
-            'password' => 'password'
-        )
-    );
-
-    // Authorize for $10 dollars (1000 cents) 
-    $response = $gateway->authorize(1000, $credit_card);
-
-    if($response->isSuccess()) {
-        // Capture the money
-        $gateway->capture(1000, $response->getAuthorization());
-    } else {
-        throw new Exception($response->getMessage);
-    }
+$gateway = new ActiveMerchantWorldPayGateway(array('login' => 'TestMerchant', 'password' => 'password'));
+$response = $gateway->purchase($tendollar, $creditcard);
+if($response->isSuccess()) {
+    $m = $response->getMessage();
 }
+$trandId = response->params['transid'];
