@@ -8,8 +8,9 @@ class ActiveMerchantCreditCardTestHelper
             'number' => $number, 
             'month' => 9, 
             'year' => date('Y') + 1, 
-            'first_name' => 'Longbob', 
-            'last_name' => 'Longsen', 
+            'name' => 'Longbob Longsen', 
+            //            'first_name' => 'Longbob', 
+            //            'last_name' => 'Longsen', 
             'verification_value' => '123', 
             'type' => 'visa'
         );

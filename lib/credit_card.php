@@ -5,7 +5,7 @@ ActiveMerchant::import('credit_card_method');
 class ActiveMerchantCreditCard extends ActiveRecord
 {
     public static $requireVerificationValue = true;
-    public $number, $month, $year, $type, $first_name, $last_name, $name;
+    public $number, $month, $year, $type, $name, $first_name, $last_name;
     public $start_month, $start_year, $issue_number;
     public $verification_value;
     
@@ -41,7 +41,9 @@ class ActiveMerchantCreditCard extends ActiveRecord
                 $this->$attr = $attributes[$attr];
             }
         }
-        $this->name = $this->first_name . ' ' . $this->last_name;
+        if(!isset($this->name) && isset($this->first_name) && isset($this->last_name)) {
+            $this->name = $this->first_name . ' ' . $this->last_name;
+        }
     }
     /**
      * Show the card number, with all but last 4 numbers replace with "X".
@@ -113,12 +115,13 @@ class ActiveMerchantCreditCard extends ActiveRecord
         $this->validateSwitchOrSoloAttributes();
     }
     /**
-     * Validates first_name, last_name, month and year
+     * Validates name, month and year
      */
     public function validateEssentialAttributes()
     {
-        $this->addErrorOnBlank('first_name', 'cannot be empty' . $this->first_name);
-        $this->addErrorOnBlank('last_name', 'cannot be empty');
+        $this->addErrorOnBlank('name', 'cannot be empty' . $this->name);
+        //$this->addErrorOnBlank('first_name', 'cannot be empty' . $this->first_name);
+        //$this->addErrorOnBlank('last_name', 'cannot be empty');
         if(!ActiveMerchantCreditCardMethod::isValidMonth($this->month)) {
             $this->addError('month', 'is not a valid month');
         }
@@ -147,10 +150,10 @@ class ActiveMerchantCreditCard extends ActiveRecord
     public function validateCardNumber()
     {
         if(!ActiveMerchantCreditCardMethod::isValidNumber($this->number)) {
-            $this->addError('number', 'is not a valid credit card number');
+            $this->addError('number', 'is invalid');//'is not a valid credit card number');
         }
         if(!ActiveMerchantCreditCardMethod::isMatchingType($this->number, $this->type)) {
-            $this->addError('type', 'is not the correct card type');
+            $this->addError('type', 'is incorrect'); //'is not the correct card type');
         }
     }
     public function validateVerificationValue()

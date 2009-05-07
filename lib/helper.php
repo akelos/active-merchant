@@ -68,7 +68,13 @@ class ActiveMerchantHelper
             }
         }
     }
-    
+    /**
+     * Assert if the keys of the given array and the given array of keys match!
+     *
+     * @param array $options
+     * @param array $keys
+     * @return boolean
+     */
     public function assertValidKeys(Array $options = array(), Array $keys = array())
     {
         $arr = array_diff(array_keys($options), $keys);
@@ -158,7 +164,6 @@ class ActiveMerchantHelper
         unset($params['country']);
         $this->addField($this->mappings[$key]['country'], $code);
         $this->addFields($key, $params);
-        //$this->$key = $params;
     }
     /**
      * Validates the given ISO 2 country code
@@ -189,7 +194,6 @@ class ActiveMerchantHelper
         foreach($value as $k => $v) {
             if(isset($this->mappings[$name])) { // && isset($this->mappings[$name][$k])) {
                 $this->fields[$name][$k] = $v;
-                //$this->fields[] = $value;
             }
             $this->$k = $v;
         }

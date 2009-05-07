@@ -12,10 +12,13 @@ class ActiveMerchantCreditCardMethod
         'american_express' => '/^3[47]\d{13}$/', 
         'diners_club' => '/^3(0[0-5]|[68]\d)\d{11}$/', 
         'jcb' => '/^3528\d{12}$/', 
+        // not supported by worldpay 
         'switch' => '/^6759\d{12}(\d{2,3})?$/', 
         'solo' => '/^6767\d{12}(\d{2,3})?$/', 
+        // not supported by worldpay
         'dankort' => '/^5019\d{12}$/', 
         'maestro' => '/^(5[06-8]|6\d)\d{10,17}$/', 
+        // not supported by worldpay
         'forbrugsforeningen' => '/^600722\d{10}$/', 
         'laser' => '/^(6304[89]\d{11}(\d{2,3})?|670695\d{13})$/'
     );
@@ -57,7 +60,10 @@ class ActiveMerchantCreditCardMethod
      */
     public static function isValidIssueNumber($number)
     {
-        return is_int((int)$number) && (int)$number >= 0 && in_array(strlen($number), array(1, 2));
+        return is_int((int)$number) && (int)$number >= 0 && in_array(strlen($number), array(
+            1, 
+            2
+        ));
     }
     /**
      * Validates the test card mode number
@@ -68,8 +74,14 @@ class ActiveMerchantCreditCardMethod
     public static function isValidTestModeCardNumber($number)
     {
         ActiveMerchant::import('base');
-        return ActiveMerchantBase::isTest()
-            && in_array((string)$number, array('1', '2', '3', 'success', 'failure', 'error'));
+        return ActiveMerchantBase::isTest() && in_array((string)$number, array(
+            '1', 
+            '2', 
+            '3', 
+            'success', 
+            'failure', 
+            'error'
+        ));
     }
     /**
      * Validates cc number
@@ -79,9 +91,7 @@ class ActiveMerchantCreditCardMethod
      */
     public static function isValidNumber($number)
     {
-        return self::isValidTestModeCardNumber($number)
-            || self::isValidCardNumberLength($number)
-            && self::isValidChecksum($number);
+        return self::isValidTestModeCardNumber($number) || self::isValidCardNumberLength($number) && self::isValidChecksum($number);
     }
     /**
      * Validates cc number's length
@@ -105,7 +115,7 @@ class ActiveMerchantCreditCardMethod
         $number_length = strlen($number);
         $parity = $number_length % 2;
         $total = 0;
-        for($i = 0;$i < $number_length;$i++) {
+        for($i = 0; $i < $number_length; $i++) {
             $digit = $number[$i];
             if($i % 2 == $parity) {
                 $digit *= 2;

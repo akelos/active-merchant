@@ -15,26 +15,61 @@ class ActiveMerchantWorldPayTestCase extends ActiveMerchantUnitTest
         ActiveMerchantBase::setGatewayMode('test');
         $this->g = new ActiveMerchantWorldPayGateway(array(
             'login' => 'X', 
-            'password' => 'Y'
+            'password' => 'Y', 
+            'account' => 1234
         ));
         $this->m = new ActiveMerchantMoney(1000, 'USD');
         $this->credit_card = ActiveMerchantCreditCardTestHelper::getCreditCard();
         $this->address = ActiveMerchantCreditCardTestHelper::getAddress();
     }
+    public function test_correct_service_url()
+    { // https://{login}:{password}@{subdomain}.worldpay.com/jsp/merchant/xml/paymentService.jsp
+        $this->assertFalse($this->g->serviceUrl('test', 'test'));
+        $g = new ActiveMerchantWorldPayGateway(array(
+            'mode' => 'test'
+        ));
+        $this->assertEqual($g->serviceUrl('test', 'test'), 'https://test:test@secure-test.ims.worldpay.com/jsp/merchant/xml/paymentService.jsp');
+        unset($g);
+        $g = new ActiveMerchantWorldPayGateway(array(
+            'mode' => 'production'
+        ));
+        $this->assertEqual($g->serviceUrl('test', 'test'), 'https://test:test@secure.ims.worldpay.com/jsp/merchant/xml/paymentService.jsp');
+    }
+    private function _defaultOptions()
+    {
+        return array(
+            'order' => 1234, 
+            'account' => 1234, 
+            'description' => 'asdf', 
+            'orderContent' => 'asdf', 
+            'customer' => array(
+                'ip' => '1.1.1.1', 
+                'session_id' => '1234234', 
+                'email' => 'asdf@asd.com', 
+                'first_name' => 'asdf', 
+                'last_name' => 'asdf', 
+                'address' => 'asdf', 
+                'zip' => '1234', 
+                'countryCode' => 'GB', 
+                'phone' => '12341234'
+            )
+        );
+    }
     public function test_order_request_should_return_a_valid_xml_string()
     {
-        $this->g->authorize($this->m, $this->credit_card);
+        $this->g->purchase($this->m, $this->credit_card, $this->_defaultOptions());
         $ret = $this->g->getXmlOrder();
         try {
             $xml = new SimpleXMLElement($ret);
             $this->assertTrue(true);
-        } catch(Exception $e) {
+        }
+        catch(Exception $e) {
             $this->assertTrue(false);
         }
     }
     public function test_xml_request_parsing()
     {
-        $this->g->authorize($this->m, $this->credit_card);
+        $this->g->purchase($this->m, $this->credit_card, $this->_defaultOptions());
         $s = $this->g->getXmlOrder();
         $x = $this->g->parse('request', $s);
         $this->assertEqual($x['order'], '1234');
@@ -50,11 +85,11 @@ class ActiveMerchantWorldPayTestCase extends ActiveMerchantUnitTest
         $this->assertEqual($x['cvc'], '123');
         $this->assertEqual($x['ip'], '1.1.1.1');
         $this->assertEqual($x['session_id'], '1234234');
-        $this->assertEqual($x['email'], 'asdf@asd.com');
+        //removed! $this->assertEqual($x['email'], 'asdf@asd.com');
     }
     public function test_order_should_be_successful()
     {
-        $ret = $this->g->authorize($this->m, $this->credit_card);
+        $ret = $this->g->purchase($this->m, $this->credit_card, $this->_defaultOptions());
         $this->assertTrue($ret->isSuccess());
         $this->assertTrue(empty($ret->message));
         $this->assertTrue($ret->params['orderCode'] == 'T0211010');
@@ -112,6 +147,90 @@ class ActiveMerchantWorldPayTestCase extends ActiveMerchantUnitTest
         $this->assertEqual($x['balance_type'][1]['type'], 'AUTHORISED');
         $this->assertEqual($x['balance_type'][1]['amount'], '10000');
         $this->assertEqual($x['balance_type'][1]['currency'], 'EUR');
+    }
+    public function test_xml_response_parsing_error2_1()
+    {
+        $s = $this->_xmlErrorCode2_1();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '2');
+        $this->assertEqual($x['errorMsg'], 'Empty body in message.');
+    }
+    public function test_xml_response_parsing_error2_2()
+    {
+        $s = $this->_xmlErrorCode2_2();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '2');
+        $this->assertEqual($x['errorMsg'], 'Invalid bankAccount details : Invalid payment details : Account and bankcode combination is incorrect');
+    }
+    public function test_xml_response_parsing_error2_3()
+    {
+        $s = $this->_xmlErrorCode2_3();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '2');
+        $this->assertEqual($x['errorMsg'], 'The markup in the document preceding the root element must be well-formed.');
+    }
+    public function test_xml_response_parsing_error4_1()
+    {
+        $s = $this->_xmlErrorCode4_1();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '4');
+        $this->assertEqual($x['errorMsg'], 'IP check failed. Access denied.');
+    }
+    public function test_xml_response_parsing_error4_2()
+    {
+        $s = $this->_xmlErrorCode4_2();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '4');
+        $this->assertEqual($x['errorMsg'], 'Security violation');
+    }
+    public function test_xml_response_parsing_error5_1()
+    {
+        $s = $this->_xmlErrorCode5_1();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '5');
+        $this->assertEqual($x['errorMsg'], 'Cannot book payment to CANCELLED if paymentstatus is not AUTHORISED but : REFUSED');
+        $this->assertEqual($x['orderCode'], '12234');
+    }
+    public function test_xml_response_parsing_error5_2()
+    {
+        $s = $this->_xmlErrorCode5_2();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '5');
+        $this->assertEqual($x['errorMsg'], 'Duplicate Order');
+    }
+    public function test_xml_response_parsing_error5_3()
+    {
+        $s = $this->_xmlErrorCode5_3();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '5');
+        $this->assertEqual($x['errorMsg'], 'Requested capture amount (EUR 125,50) exceeds the authorised balance for this payment (EUR 115,50)');
+        $this->assertEqual($x['orderCode'], '11223');
+    }
+    public function test_xml_response_parsing_error7_1()
+    {
+        $s = $this->_xmlErrorCode7_1();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '7');
+        $this->assertEqual($x['errorMsg'], 'Invalid payment details : Expiry date = 012002');
+        $this->assertEqual($x['orderCode'], '1112');
+    }
+    public function test_xml_response_parsing_error7_2()
+    {
+        $s = $this->_xmlErrorCode7_2();
+        $x = $this->g->parse('response', $s);
+        $this->assertEqual($x['status'], 'ERROR');
+        $this->assertEqual($x['errorCode'], '7');
+        $this->assertEqual($x['errorMsg'], 'Gateway error');
+        $this->assertEqual($x['orderCode'], '11223');
     }
     private function _02xmlOrderRequest()
     {
@@ -253,6 +372,126 @@ function OnLoadEvent() {document.theForm.submit();}
     </reply>
 </paymentService>';
     }
+    private function _xmlErrorCode2_1()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.4" merchantCode="MYMERCHANT">
+    <reply>
+        <error code="2"><![CDATA[Empty body in message.]]></error>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode2_2()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService merchantCode="MYMERCHANT" version="1.3">
+    <reply>
+        <error code="2"><![CDATA[Invalid bankAccount details : Invalid payment details : Account and bankcode combination is incorrect]]></error>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode2_3()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.4" merchantCode="MMMODELMANAGM1">
+    <reply>
+        <error code="2"><![CDATA[The markup in the document preceding the root element must be well-formed.]]></error>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode2_4()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.4" merchantCode="MMMODELMANAGM1">
+    <reply>
+        <error code="2"><![CDATA[The markup in the document preceding the root element must be well-formed.]]></error>
+    </reply>
+</paymentService>';
+        //The content of element type "order" is incomplete, it must match "(description,amount,risk?,orderContent?,(paymentMethodMask|paymentDetails|payAsOrder),shopper?,shippingAddress?,branchSpecificExtension?,redirectPageAttribute?,echoData?)".
+    //The content of element type "paymentDetails" is incomplete, it must match "((VISA-SSL|ECMC-SSL|BHS-SSL|IKEA-SSL|AMEX-SSL|ELV-SSL|DINERS-SSL|CB-SSL|AIRPLUS-SSL|UATP-SSL|CARTEBLEUE-SSL|SOLO_GB-SSL|LASER-SSL|DANKORT-SSL|DISCOVER-SSL|JCB-SSL|AURORE-SSL|GECAPITAL-SSL|PERMANENT_SIGNED_DD_NL-FAX|SINGLE_UNSIGNED_DD_NL-SSL|SINGLE_UNSIGNED_DD_ES-SSL|SINGLE_UNSIGNED_DD_FR-SSL|PERMANENT_SIGNED_DD_GB-SSL|PAYOUT-BANK|PAYPAL-EXPRESS|MAESTRO-SSL|SWITCH-SSL|NCPB2B-SSL|NCPSEASON-SSL|(cardNumber,expiryDate,cardHolderName,(cvc|issueNumber|startDate)?,EMV_Request?)|(cardSwipe,cvc?)),localDateTimeAtPOS?,session?,info3DSecure?)".
+    }
+    private function _xmlErrorCode4_1()
+    {
+        return '<?xml version="1.0"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService merchantCode="MYCO" version="1.3">
+    <reply>
+        <error code="4"><![CDATA[IP check failed. Access denied.]]></error>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode4_2()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.4" merchantCode="MMMODELMANAGM1">
+    <reply>
+        <error code="4"><![CDATA[Security violation]]></error>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode5_1()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.3" merchantCode="MYCO">
+    <reply>
+        <orderStatus orderCode="12234">
+            <error code="5"><![CDATA[Cannot book payment to CANCELLED if paymentstatus is not AUTHORISED but : REFUSED]]></error>
+        </orderStatus>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode5_2()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.3" merchantCode="MYCO">
+    <reply>
+        <error code="5"><![CDATA[Duplicate Order]]></error>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode5_3()
+    {
+        return '<?xml version="1.0"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService merchantCode="MYCO" version="1.4">
+    <reply>
+        <orderStatus orderCode="11223">
+            <error code="5"><![CDATA[Requested capture amount (EUR 125,50) exceeds the authorised balance for this payment (EUR 115,50)]]></error>
+        </orderStatus>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode7_1()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.3" merchantCode="MYCO">
+    <reply>
+        <orderStatus orderCode="1112">
+            <error code="7"><![CDATA[Invalid payment details : Expiry date = 012002]]></error>
+        </orderStatus>
+    </reply>
+</paymentService>';
+    }
+    private function _xmlErrorCode7_2()
+    {
+        return '<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.4" merchantCode="MYCO">
+    <reply>
+        <orderStatus orderCode="11223">
+            <error code="7"><![CDATA[Gateway error]]></error>
+        </orderStatus>
+    </reply>
+</paymentService>';
+    }
     // -------------------------------------------------------------------------
     // -------------------------------------------------------------------------
     private function _02xmlOrderRequestBESTMATCH()
@@ -305,7 +544,7 @@ function OnLoadEvent() {document.theForm.submit();}
     </reply>
 </paymentService>';
     }
-    public function _01xmlOrder()
+    private function _01xmlOrder()
     {
         return '<?xml version="1.0"?>
 <!DOCTYPE paymentService PUBLIC "-//WorldPay/DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">

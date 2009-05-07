@@ -8,6 +8,10 @@ class ActiveMerchantResponse
     {
         return $this->success;
     }
+    public function getMessage()
+    {
+        return $this->message;
+    }
     public function isTest()
     {
         return $this->test;

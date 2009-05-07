@@ -55,17 +55,18 @@ class ActiveMerchantCreditCardTestCase extends ActiveMerchantUnitTest
     }
     public function test_cards_with_empty_names_should_not_be_valid()
     {
-        $this->visa->first_name = '';
-        $this->visa->last_name = '';
+        //$this->visa->first_name = '';
+        //$this->visa->last_name = '';
+        $this->visa->name = '';
         $this->assertFalse($this->visa->isValid());
         $this->assertTrue($this->visa->hasErrors());
     }
     public function test_should_be_able_to_access_errors_indifferently()
     {
-        $this->visa->first_name = '';
+        $this->visa->name = '';
         $this->assertFalse($this->visa->isValid());
         $this->assertTrue($this->visa->hasErrors());
-        $this->assertTrue($this->visa->getErrorsOn('first_name'));
+        $this->assertTrue($this->visa->getErrorsOn('name'));
     }
     public function test_should_be_able_to_liberate_a_bogus_card()
     {

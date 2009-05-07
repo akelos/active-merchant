@@ -53,7 +53,6 @@ class ActiveMerchantCountry
         foreach($array as $countryCode) {
             if($countryCode->format == $format) {
                 return $countryCode;
-                //$ret[] = $countryCode;
             }
         }
         return $ret;

@@ -4,7 +4,7 @@ defined('ACTIVE_MERCHANT_LIB_DIR') ? null : define('ACTIVE_MERCHANT_LIB_DIR', di
 
 class ActiveMerchant
 {
-    function import()
+    public function import()
     {
         $args = func_get_args();
         $args = is_array($args[0]) ? $args[0] : (func_num_args() > 1 ? $args : Ak::stringToArray($args[0]));
