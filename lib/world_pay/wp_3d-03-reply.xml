@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay/DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService merchantCode="MYMERCHANT" version="1.4">
+	<reply>
+		<orderStatus orderCode='merchantGeneratedOrderCode'>
+			<requestInfo>
+				<request3DSecure>
+					<paRequest>somedata</paRequest>
+					<issuerURL>http://example.issuer.url/3dsec.html</issuerURL>
+				</request3DSecure>
+			</requestInfo>
+			<echoData>somedata</echoData>
+		</orderStatus>
+	</reply>
+</paymentService>

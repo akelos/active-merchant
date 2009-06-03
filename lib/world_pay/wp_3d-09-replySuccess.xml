@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay/DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService merchantCode="MYMERCHANT" version="1.4">
+	<reply>
+		<orderStatus orderCode="merchantGeneratedOrderCode">
+			<payment>
+				<paymentMethod>VISA-SSL</paymentMethod>
+				<amount currencyCode="EUR" debitCreditIndicator="credit" exponent="2" value="10000" />
+				<lastEvent>AUTHORISED</lastEvent>
+				<balance accountType="IN_PROCESS">
+					<amount currencyCode="EUR" debitCreditIndicator="credit" exponent="2" value="10000" />
+				</balance>
+				<balance accountType="AUTHORISED">
+					<amount currencyCode="EUR" debitCreditIndicator="debit" exponent="2" value="10000" />
+				</balance>
+				<cardNumber>4111********1111</cardNumber>
+			</payment>
+		</orderStatus>
+	</reply>
+</paymentService>

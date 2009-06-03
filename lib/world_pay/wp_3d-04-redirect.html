@@ -1,0 +1,31 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<title>3-D Secure helper page</title>
+</head>
+<body OnLoad="OnLoadEvent();">
+This page should forward you to your own card issuer for identification.
+If your browser does not start loading the page, press the button you
+see.
+<br />
+After you successfully identify yourself you will be sent back to this
+site where the payment process will continue as if nothing had happened.
+<br />
+implemented...
+<form name="theForm" method="POST" action="value of the issuerUrl element">
+	<input type="hidden" name="PaReq" value="value of the paRequest element" /> 
+	<input type="hidden" name="TermUrl" value="url of merchant site" /> 
+	<input type="hidden" name="MD" value="merchant supplied data" /> 
+	<input type="submit" name="Identify yourself" />
+</form>
+<script language="Javascript">
+<!--
+function OnLoadEvent()
+{
+	// Make the form post as soon as it has been loaded.
+	document.theForm.submit();
+}
+// -->
+</script>
+</body>
+</html>

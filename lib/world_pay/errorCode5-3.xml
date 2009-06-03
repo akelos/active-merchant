@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay//DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService merchantCode="MYCO" version="1.4">
+	<reply>
+		<orderStatus orderCode="11223">
+			<error code="5"><![CDATA[Requested capture amount (EUR 125,50) exceeds the authorised balance for this payment (EUR 115,50)]]></error>
+		</orderStatus>
+	</reply>
+</paymentService>

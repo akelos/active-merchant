@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<!DOCTYPE paymentService PUBLIC "-//WorldPay/DTD WorldPay PaymentService v1//EN" "http://dtd.worldpay.com/paymentService_v1.dtd">
+<paymentService version="1.4" merchantCode="JOEBLOGGS">
+	<reply>
+		<orderStatus orderCode="0812114512-MatchBestMerchantCode">
+			<payment>
+				<paymentMethod>VISA-SSL</paymentMethod>
+				<amount value="10000" currencyCode="EUR" exponent="2" debitCreditIndicator="credit" />
+				<lastEvent>AUTHORISED</lastEvent>
+				<balance accountType="IN_PROCESS_AUTHORISED">
+					<amount value="10000" currencyCode="EUR" exponent="2" debitCreditIndicator="credit" />
+				</balance>
+				<cardNumber>4111********1111</cardNumber>
+			</payment>
+		</orderStatus>
+	</reply>
+</paymentService>

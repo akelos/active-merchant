@@ -1,0 +1,1332 @@
+<!--
+==============================================================================
+                              paymentService DTD
+                     All rights reserved, subject to change
+
+                                   Version 1.4.1
+
+==============================================================================
+-->
+
+<!-- ROOT ELEMENT -->
+<!-- ============ -->
+<!--
+The root element paymentService needs two attributes :
+- version : The DTD version.
+- merchantCode : The code that identifies the merchant
+
+The paymentService can have the following child elements:
+- submit : merchants submit information to the payment service like orders or batches
+- modify : merchants send modify requests to modify orders or batches
+- inquiry: merchants can inquire the status of orders or batches
+- reply  : the payment service will always respond with a reply message. Only the payment service can send
+           reply messages
+- notify : when the payment service sends merchants information about the status of an order, or order- or
+           transfer reports, the notify element is used
+-->
+<!ELEMENT paymentService  ( submit | modify | inquiry | reply | notify | verify)>
+<!ATTLIST paymentService  version       ( 1.4 | 1.3 | 1.2 | 1.1 | 1.0 )  #REQUIRED
+                          merchantCode NMTOKEN  #IMPLIED >
+
+<!-- CHILD ELEMENTS OF PAYMENTSERVICE ELEMENT -->
+<!-- ======================================== -->
+<!-- This describes the different services that are provided within
+     the Paymentservice
+-->
+<!ELEMENT submit  (order | orderBatch | shopper | futurePayAgreement | makeFuturePayPayment)>
+
+<!ELEMENT modify  (orderModification | batchModification | accountBatchModification | futurePayAgreementModification)>
+
+<!ELEMENT inquiry (orderInquiry | batchInquiry | accountBatchInquiry | refundableAmountInquiry | shopperAuthentication)>
+
+<!ELEMENT reply   (orderStatus* | batchStatus | error | addressCheckResponse |
+                   refundableAmount | accountBatch | shopper | ok |
+                   futurePayAgreementStatus | shopperAuthenticationResult | futurePayPaymentResult)>
+
+<!ELEMENT verify  (addressCheck)>
+
+<!--
+The payment service can notify merchants if the status of an order changes or to send
+order- or transfer reports. This information is not requested by the
+merchant. Therefore this type of messages are not reply messages but notify
+messages.  Child elements of notify element:
+- orderStatusEvent : The orderStatusEvent is sent to report the change of the
+                     status of an order
+- report           : Order report or transfer report.
+-->
+<!ELEMENT notify  (orderStatusEvent | report )>
+<!ATTLIST notify  messageType  (TransferReport | OrderReport | CaptureReport | EventReport | BatchReport)  #IMPLIED >
+
+<!-- CHILD ELEMENTS OF SUBMIT ELEMENT -->
+<!-- ================================ -->
+<!ELEMENT order  (	description,
+					amount,
+					risk?,
+					orderContent?,
+					(paymentMethodMask | paymentDetails | payAsOrder ),
+					shopper?,
+					shippingAddress?,
+					branchSpecificExtension?,
+					redirectPageAttribute?,
+					echoData?) >
+
+<!--
+Enter risk parameters. All individual risk-score settings
+eg. <risk multiply="1.5" avsLevel="C" cvcLevel="B"/>
+-->
+<!ELEMENT risk EMPTY>
+<!ATTLIST risk multiply NMTOKEN  #IMPLIED
+               avsLevel NMTOKEN  #IMPLIED
+               cvcLevel NMTOKEN  #IMPLIED>
+
+
+<!--
+The ordercode is a unique reference for an order. The maximum length is 64
+characters. For purchase details the first 15 characters are used.
+-->
+<!ATTLIST order orderCode CDATA  #IMPLIED
+                agreementId NMTOKEN #IMPLIED
+				shoppingBasketCode CDATA #IMPLIED
+				installationId NMTOKEN #IMPLIED
+				shopperLanguageCode NMTOKEN #IMPLIED
+				>
+
+<!--
+The echoData element contains information that is used to process the
+transaction much faster in case one transaction consists of multiple submit
+messages.  If the echoData is supplied in a orderStatus element to the
+merchant, the merchant must send the same echoData element back in the next
+submit messages if it belonging to the same transaction.  The merchant should
+never send its own data in the echoData element.  As such the first submit
+never contains an echoData element.  One should not put any restrictions on the
+size of the contents of this field.
+-->
+<!ELEMENT echoData (#PCDATA)>
+
+<!--
+An orderBatch contains multiple orders. OrderBatches are processed off-line.
+
+ForeignContent is reserved
+Attributes of orderBatch :
+- transactions : The exact number of transactions in this batch. There is no
+  maximum for the number of transactions in a batch. We strongly suggest not
+  to exceed 500 transactions in a batch.
+- merchantBatchCode : The merchantBatchCode is a unique reference for a batch.
+  The maximum length is 25 characters.
+-->
+<!ELEMENT orderBatch  ( (order+ ) , foreignContent? )>
+<!ATTLIST orderBatch  transactions      NMTOKEN  #REQUIRED
+                      merchantBatchCode CDATA    #REQUIRED >
+<!--
+FuturePay
+-->
+
+<!--
+Agreement Creation
+-->
+<!ELEMENT futurePayAgreement ((schedule | limit),
+								setUpPayment?,
+								paymentDetails,
+								address,
+								shopperAuthentication?)>
+
+
+<!ATTLIST futurePayAgreement
+		acquisitionCurrencyCode NMTOKEN #REQUIRED
+		agreementCurrencyCode NMTOKEN #REQUIRED
+		shoppingBasketCode CDATA #REQUIRED
+		description CDATA #REQUIRED
+		installationId NMTOKEN #REQUIRED
+		shopperEmailAddress CDATA #REQUIRED
+		shopperLanguageCode CDATA #REQUIRED>
+
+<!-- CHILD ELEMENTS OF futurePayAgreement ELEMENT -->
+<!--
+Schedule applies to regular agreements
+-->
+<!ELEMENT schedule (numberOfPayments?,
+					agreementInterval?,
+					agreementStartDate?,
+					(initialAmount?,normalAmount)?)>
+
+<!--
+Limit applies to limited agreements
+-->
+<!ELEMENT limit ((paymentsPerAgreement | paymentsPerInterval |
+				valuePerInterval | valuePerAgreement),
+					agreementStartDate?,
+					agreementEndDate?)>
+<!--
+Payments per agreement limit
+-->
+<!ELEMENT paymentsPerAgreement (numberOfPayments?,
+								agreementInterval?,
+								amountLimit?)>
+<!--
+Payments per interval limit
+-->
+<!ELEMENT paymentsPerInterval (numberOfPayments,
+								agreementInterval,
+								amountLimit?)>
+<!--
+Value per agreement limit
+-->
+<!ELEMENT valuePerAgreement (amountLimit)>
+
+<!--
+Value per interval limit
+-->
+<!ELEMENT valuePerInterval (agreementInterval,
+								amountLimit)>
+
+<!--
+	Presents of setUpPayment indicates there is an associated set up payment
+	if the amount is present then the set up payment is taken by futurepay
+-->
+<!ELEMENT setUpPayment (amount?)>
+<!ELEMENT numberOfPayments (#PCDATA)>
+<!ELEMENT agreementInterval (interval)>
+<!ELEMENT initialAmount (amount)>
+<!ELEMENT normalAmount (amount)>
+<!ATTLIST normalAmount type (fixed | adjustable) #REQUIRED>
+<!ELEMENT amountLimit (amount)>
+<!ELEMENT agreementStartDate (date)>
+<!ELEMENT agreementEndDate (date)>
+
+<!ELEMENT interval EMPTY>
+<!ATTLIST interval unit (day | week | month | year) #REQUIRED
+					multiplier NMTOKEN #REQUIRED>
+
+
+<!ELEMENT futurePayAgreementStatus (shopperAuthentication?)>
+<!ATTLIST futurePayAgreementStatus agreementId NMTOKEN #REQUIRED
+									status (active |
+											complete |
+											cancelledByMerchant |
+											cancelledByShopper |
+											awaitingStartDate |
+											attemptLimitReached |
+											accountSuspended |
+											cardExpiredSuspended |
+											waitingSetUpPayment) #REQUIRED>
+
+<!--
+
+FuturePay shopper authentication
+
+-->
+
+<!ELEMENT shopperAuthentication (username,password)>
+<!ELEMENT username (#PCDATA)>
+<!ELEMENT password (#PCDATA)>
+
+<!ELEMENT shopperAuthenticationResult EMPTY>
+<!ATTLIST shopperAuthenticationResult authenticated (yes | no) #REQUIRED>
+
+<!--
+
+FuturePay admin
+
+-->
+<!ELEMENT makeFuturePayPayment (amount | amountNoCurrency)>
+<!ATTLIST makeFuturePayPayment agreementId NMTOKEN #REQUIRED>
+
+<!ELEMENT futurePayAgreementModification (agreementStartDate | adjustAmount | cancel)>
+<!ATTLIST futurePayAgreementModification agreementId NMTOKEN #REQUIRED>
+
+<!ELEMENT adjustAmount (amount | amountNoCurrency)>
+
+<!-- A decimal amount with out a currency value-->
+<!ELEMENT amountNoCurrency EMPTY>
+<!ATTLIST amountNoCurrency value NMTOKEN #REQUIRED>
+
+<!ELEMENT futurePayPaymentResult (paymentMethod,lastEvent)>
+<!ATTLIST futurePayPaymentResult agreementId NMTOKEN #REQUIRED
+									orderCode CDATA #REQUIRED>
+
+
+<!-- CHILD ELEMENTS OF MODIFY ELEMENT -->
+<!-- ================================ -->
+<!ELEMENT orderModification  (cancel | capture | refund | addBackOfficeCode | addTransactionCertificate | authorise | increaseAuthorisation | cancelOrRefund)>
+<!ATTLIST orderModification  orderCode CDATA  #REQUIRED >
+<!ELEMENT batchModification  (cancel )>
+<!ATTLIST batchModification  merchantBatchCode CDATA  #REQUIRED >
+<!ELEMENT accountBatchModification   EMPTY>
+<!ATTLIST accountBatchModification action  (END_PERIOD) #REQUIRED
+                                   accountType (IN_PROCESS_CAPTURED) #REQUIRED>
+<!ELEMENT addTransactionCertificate (cryptogram, ICCTrxStatus, verificationResults)>
+<!-- When the value is set to 'yes', a addTransactionCertificate will be  
+     processed directly, and not saved as batch.
+     Of course the Shoppercell of the authorisation and the addTransactionCertificate  
+     should be the same! -->
+<!ATTLIST addTransactionCertificate immediate (yes|no) 'no' >
+
+<!-- CHILD ELEMENTS OF INQUIRY ELEMENT -->
+<!-- ================================= -->
+<!--
+The order inquiry element can be used to inquire the status of a specific
+order, or the statusses of all orders that are payed using a specific credit
+card.
+Example of an order inquiry:
+<orderInquiry orderCode="ORDER01" />
+Example of an inquiry of order statusses belonging to a specific creditcard:
+<orderInquiry>
+  <cardSearch cardNumber="4111111111111111">
+    <startDate>
+      <date dayOfMonth="01" month="06" year="2001"/>
+    </startDate>
+  </cardSearch>
+</orderInquiry>
+This will return the statusses of all order made with creditcardnumber 4111111111111111
+from June 1st 2001 until now.
+-->
+<!ELEMENT orderInquiry  (cardSearch? )>
+<!ATTLIST orderInquiry  orderCode CDATA  #IMPLIED >
+<!ELEMENT batchInquiry EMPTY>
+<!ATTLIST batchInquiry  merchantBatchCode CDATA  #REQUIRED >
+<!ELEMENT accountBatchInquiry EMPTY>
+<!ATTLIST accountBatchInquiry  accountType (IN_PROCESS_CAPTURED)  #REQUIRED
+                               batchId NMTOKEN #IMPLIED
+                               queryHotBatch (y) #IMPLIED >
+
+<!ELEMENT refundableAmountInquiry  EMPTY>
+<!ATTLIST refundableAmountInquiry  orderCode CDATA  #REQUIRED >
+<!-- CHILD ELEMENTS OF REPLY ELEMENT -->
+<!-- =============================== -->
+<!-- The ok element represents the new style answer to an order modification -->
+<!-- Examples:
+	<ok>
+		<cancelReceived orderCode="MYORDER123"/>
+	</ok>
+
+	<ok>
+		<captureReceived orderCode="MYORDER123">
+			<amount currencyCode="EUR" value="123" exponent="2"/>
+		</captureReceived>
+	</ok>
+
+	<ok>
+		<refundReceived orderCode="MYORDER123">
+			<amount currencyCode="EUR" value="123" exponent="2"/>
+		</refundReceived>
+	</ok>
+
+	<ok>
+		<backofficeCodeReceived orderCode="MYORDER123" backOfficeCode="ABCDE"/>
+	</ok>
+
+	<ok>
+		<authorisationCodeReceived orderCode="MYORDER123" authorisationCode="AB12ZY"/>
+	</ok>
+
+-->
+<!ELEMENT ok (localDateTimeAtPOS?,
+               (cancelReceived|
+				voidReceived|
+				captureReceived|
+				refundReceived|
+				backofficeCodeReceived|
+				authorisationCodeReceived|
+				transactionCertificateReceived)) >
+
+<!ELEMENT voidReceived EMPTY >
+<!ATTLIST voidReceived orderCode CDATA #REQUIRED>
+
+<!ELEMENT cancelReceived EMPTY >
+<!ATTLIST cancelReceived orderCode CDATA #REQUIRED>
+
+<!ELEMENT captureReceived (amount) >
+<!ATTLIST captureReceived orderCode CDATA #REQUIRED>
+
+<!ELEMENT addTransactionCertificateReceived EMPTY >
+<!ATTLIST addTransactionCertificateReceived orderCode CDATA #REQUIRED>
+
+<!ELEMENT refundReceived (amount) >
+<!ATTLIST refundReceived orderCode CDATA #REQUIRED>
+
+<!ELEMENT backofficeCodeReceived EMPTY >
+<!ATTLIST backofficeCodeReceived orderCode CDATA #REQUIRED
+                                 backOfficeCode CDATA #REQUIRED>
+
+<!ELEMENT authorisationCodeReceived EMPTY >
+<!ATTLIST authorisationCodeReceived orderCode CDATA #REQUIRED
+                                    authorisationCode CDATA #REQUIRED>
+
+<!ELEMENT transactionCertificateReceived EMPTY >
+<!ATTLIST transactionCertificateReceived orderCode CDATA #REQUIRED>
+
+
+<!ELEMENT orderStatus ( ((reference,bankAccount?) |
+						 error |
+						 (payment+ , orderModification?) |
+						 requestInfo
+						), date?, echoData? )>
+<!ATTLIST orderStatus  orderCode CDATA  #REQUIRED >
+
+<!--
+The element batchStatus represents the status of the batch. When orders are
+processed the batch status can contain the orderstatusses of the individual orders.
+Attributes of batchStatus :
+- transactions: The exact number of transactions in this batch. There is no
+  maximum for the number of transactions in a batch.
+- merchantBatchCode :  The reference for this batch
+- status :  The status of this batch.
+-->
+<!ELEMENT batchStatus  (orderStatus* , foreignContent? )>
+<!ATTLIST batchStatus  settlementBatchId NMTOKEN  #IMPLIED
+                       transactions      NMTOKEN  #REQUIRED
+                       merchantBatchCode CDATA    #REQUIRED
+                       status             (	ORDERS_SAVED |
+                                           	PROCESSED |
+                                           	PROCESSED_WITH_ERRORS |
+                                           	CANCELLED )  #REQUIRED >
+<!--
+The element error will be returned when an error occurs. The error contains an
+error message describing what caused this error.
+Attributes of error :
+- code : An error code for this error.
+Errorcodes can be:
+- 1 : ERROR_INTERNAL : please call the payment service
+- 2 : ERROR_PARSE : your xml could not be parsed
+- 3 : ERROR_ORDER_AMOUNT : either the order or the amount is invalid
+- 4 : ERROR_SECURITY : security violation
+- 5 : ERROR_INVALID_REQUEST : Error in request (duplicate order, cancel not existing order etc.)
+- 6 : ERROR_INVALID_CONTENT : invalid order in orderbatch
+- 7 : ERROR_PAYMENT_DETAILS : payment details are not correct (f.i. expiry date in past)
+- 8 : ERROR_NOT_AVAILABLE : this service is currently not available, try again later
+
+-->
+<!ELEMENT error  (#PCDATA )>
+<!ATTLIST error  code  (1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 )  #REQUIRED >
+<!ELEMENT accountBatch  (periodBeginDate?,periodEndDate?,totalPayments?,paymentAmounts?)>
+<!ATTLIST accountBatch batchId CDATA #REQUIRED accountType NMTOKEN #REQUIRED >
+
+<!-- CHILD ELEMENTS OF ACCOUNTBATCH ELEMENT -->
+<!-- ================================ -->
+<!ELEMENT periodBeginDate  (date)>
+<!ELEMENT periodEndDate  (date)>
+<!ELEMENT totalPayments (#PCDATA) >
+<!ELEMENT paymentAmounts  (amount*)>
+
+<!-- CHILD ELEMENTS OF NOTIFY ELEMENT -->
+<!-- ================================ -->
+<!ELEMENT orderStatusEvent  (payment , journal )>
+<!ATTLIST orderStatusEvent  orderCode CDATA  #REQUIRED
+							backOfficeCode CDATA #IMPLIED
+							agreementId NMTOKEN #IMPLIED
+							shoppingBasketCode CDATA #IMPLIED >
+
+<!ELEMENT report  (lastDate? , creationDate? , fromDate?, untilDate?, (orderStatusEvent | journal )* )>
+<!ATTLIST report  reportType             (order | transfer | capture | event | batch)  #REQUIRED
+                  batchId                NMTOKEN  #IMPLIED
+                  settlementCurrency     NMTOKEN  #IMPLIED
+                  accountType            NMTOKEN  #IMPLIED
+                  acquirerCode           NMTOKEN  #IMPLIED
+                  acquirerAccountCode    NMTOKEN  #IMPLIED
+                  brandId  			 	 NMTOKEN  #IMPLIED	 >
+
+<!-- CHILD ELEMENTS OF ORDER ELEMENT -->
+<!-- =============================== -->
+<!--
+The maximum length of description is 50 characters. In case an order with
+airline element is used, the first 20 characters should contain the name
+of the airline.
+-->
+<!ELEMENT description  (#PCDATA )>
+
+<!--
+Example of an amount element :
+(E.g. BEF 12345)
+<amount value="12345" currencyCode="BEF" exponent="0"/>
+(E.g. USD 123.45)
+<amount value="12345" currencyCode="USD" exponent="2"/>
+-->
+<!ELEMENT amount EMPTY>
+<!ATTLIST amount  value					NMTOKEN  #REQUIRED
+                  currencyCode			NMTOKEN  #REQUIRED
+                  exponent				(0 | 2 | 3 )  #REQUIRED
+                  debitCreditIndicator	(debit | credit )  'credit' >
+<!ELEMENT orderContent  (#PCDATA )>
+
+<!ELEMENT paymentMethodMask  ( (include ) ,  (include | exclude )* )>
+
+<!ELEMENT paymentDetails  (	(VISA-SSL | ECMC-SSL | BHS-SSL | IKEA-SSL | AMEX-SSL | ELV-SSL |
+ 							 DINERS-SSL | CB-SSL | AIRPLUS-SSL | UATP-SSL |
+							 CARTEBLEUE-SSL | SOLO_GB-SSL|
+							 LASER-SSL | DANKORT-SSL | DISCOVER-SSL | JCB-SSL |
+							 AURORE-SSL | GECAPITAL-SSL |
+							 PERMANENT_SIGNED_DD_NL-FAX|
+							 SINGLE_UNSIGNED_DD_NL-SSL|
+							 SINGLE_UNSIGNED_DD_ES-SSL|
+							 SINGLE_UNSIGNED_DD_FR-SSL|
+							 PERMANENT_SIGNED_DD_GB-SSL|
+							 PAYOUT-BANK | PAYPAL-EXPRESS | MAESTRO-SSL | SWITCH-SSL |
+							 NCPB2B-SSL | NCPSEASON-SSL |
+
+                             (cardNumber, expiryDate, cardHolderName,
+                                 (cvc | issueNumber | startDate)?,
+                                 EMV_Request?) |
+
+                             (cardSwipe, cvc?)
+                            ), localDateTimeAtPOS?, session?, info3DSecure? )>
+<!ATTLIST paymentDetails  action  (AUTHORISE | REFUND | OFFLINEAUTHORISE )  'AUTHORISE' >
+<!ELEMENT payAsOrder  (amount )>
+<!ATTLIST payAsOrder  orderCode CDATA  #REQUIRED
+		    merchantCode NMTOKEN  #IMPLIED >
+<!ELEMENT shopper  (shopperEmailAddress? ,
+					authenticatedShopperID?,
+					bankAccount?,
+					browser?)>
+
+<!ELEMENT shippingAddress  (address )>
+<!ELEMENT branchSpecificExtension (airline|purchase|hotel)>
+<!ELEMENT browser (acceptHeader?, userAgentHeader?)>
+<!ELEMENT acceptHeader (#PCDATA)>
+<!ELEMENT userAgentHeader (#PCDATA)>
+<!ELEMENT redirectPageAttribute (fontAttr?, bodyAttr?)>
+<!ELEMENT fontAttr (#PCDATA)>
+<!ELEMENT bodyAttr (#PCDATA)>
+
+<!--
+An info3DSecure element contains the Verified by Visa payment authentication
+response data necessary to complete a 3D Secure transaction.
+-->
+<!ELEMENT info3DSecure (paResponse|(xid,cavv,eci)|attemptedAuthentication)>
+<!ELEMENT paResponse (#PCDATA)>
+<!ELEMENT xid (#PCDATA)>
+<!ELEMENT cavv (#PCDATA)>
+<!ELEMENT eci (#PCDATA)>
+<!ELEMENT attemptedAuthentication EMPTY>
+
+<!-- =============================== -->
+
+<!-- CHILD ELEMENTS OF ORDERSTATUS ELEMENT -->
+<!-- ===================================== -->
+<!ELEMENT reference  (#PCDATA )>
+<!ATTLIST reference id NMTOKEN  #IMPLIED >
+<!-- Element cardNumber in payment is deprecated, use attribute number in paymentMethodDetail.card instead -->
+<!ELEMENT payment  (	localDateTimeAtPOS?,
+            paymentMethod ,
+			paymentMethodDetail? ,
+			amount ,
+			lastEvent? ,
+			AuthorisationId? ,
+			ISO8583ReturnCode? ,
+			CVCResultCode? ,
+			AVSResultCode? ,
+			ThreeDSecureResult? ,
+			cardHolderName? ,
+			issuerCountryCode? ,
+			EMV_Response?,
+			balance* ,
+			cardNumber?,
+			riskScore? )>
+<!ELEMENT requestInfo  (request3DSecure)>
+
+<!-- CHILD ELEMENTS OF ORDERBATCH ELEMENT -->
+<!-- ==================================== -->
+<!-- Reserved for internal use.              -->
+<!ELEMENT foreignContent  (#PCDATA )>
+<!ATTLIST foreignContent  xml:space  (default | preserve )  'preserve' >
+
+
+<!-- CHILD ELEMENT OF PaymentService ELEMENT -->
+<!ELEMENT addressCheck  (address )>
+
+<!-- CHILD ELEMENT OF Reply ELEMENT -->
+<!ELEMENT addressCheckResponse  (address*,
+								    addressCheckResponseCode,
+									addressCheckMessage )>
+
+<!-- 	AddressCheckResponseCodes:
+		ERROR = 1
+		PROVIDER_ERROR = 2
+		SUCCESS = 3
+		SUCCESS_NEW_DATA = 4
+		MOVED_NO_NEW_ADDRESS = 5
+		MOVED_MAIL_FORWARDED = 6
+		UNUSABLE_ADDRESS =7
+		MANUAL_CHECK =8           -->
+<!ELEMENT addressCheckResponseCode  (#PCDATA )>
+<!ELEMENT addressCheckMessage  (#PCDATA )>
+
+<!ELEMENT refundableAmount ( (amount, date? ) | error )>
+<!ATTLIST refundableAmount orderCode CDATA  #REQUIRED >
+
+<!-- CHILD ELEMENTS OF ORDERSTATUSEVENT ELEMENT -->
+<!-- ========================================== -->
+<!ELEMENT journal  (bookingDate , accountTx*, journalReference* )>
+<!ATTLIST journal  journalType NMTOKEN  #REQUIRED
+                   description CDATA    #IMPLIED
+                   note        CDATA    #IMPLIED
+                   sent         (y | n )  'n' >
+
+<!-- CHILD ELEMENTS OF PAYMENTMETHODMASK ELEMENT -->
+<!-- =========================================== -->
+<!ELEMENT include EMPTY>
+<!ATTLIST include  code NMTOKEN  #REQUIRED >
+<!ELEMENT exclude EMPTY>
+<!ATTLIST exclude  code NMTOKEN  #REQUIRED >
+
+
+<!-- CHILD ELEMENTS OF REQUESTINFO ELEMENT -->
+<!-- ===================================== -->
+<!--
+A request3DSecure is a reply to the merchant on an order with payment details
+where the shopper needs to authenticate himself using Verified by Visa
+(3D Secure) with the card issuer.
+
+Example of a request3DSecure message:
+<reply>
+	<orderStatus orderCode='1234'>
+		<requestInfo>
+			<request3DSecure>
+				<paRequest>somebase64encodeddata<paRequest>
+				<issuerURL>http://www.xxx.com/xyz.html</issuerURL>
+			</request3DSecure>
+		</requestInfo>
+		<echoData>AABBCC</echoData>
+	</orderStatus>
+</reply>
+-->
+<!ELEMENT request3DSecure (paRequest, issuerURL)>
+<!ELEMENT paRequest (#PCDATA)>
+<!ELEMENT issuerURL (#PCDATA)>
+
+<!-- CHILD ELEMENTS OF PAYMENTDETAILS ELEMENT -->
+<!-- ======================================== -->
+<!ELEMENT VISA-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT ECMC-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT BHS-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT IKEA-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT AMEX-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT DINERS-SSL	 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT CB-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT CARTEBLEUE-SSL (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT DANKORT-SSL	 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT DISCOVER-SSL	 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT JCB-SSL	 	 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT AURORE-SSL	 (cardNumber, birthDate,  cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT GECAPITAL-SSL	 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT AIRPLUS-SSL	 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT UATP-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT SWITCH-SSL	 (cardNumber, expiryDate, cardHolderName, (issueNumber | (startDate, issueNumber?) ), cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT MAESTRO-SSL	 (cardNumber, expiryDate, cardHolderName, startDate?, issueNumber?, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT SOLO_GB-SSL	 (cardNumber, expiryDate, cardHolderName, (issueNumber | (startDate, issueNumber?) ), cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT LASER-SSL		 (cardNumber, expiryDate, cardHolderName, startDate?, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT ELV-SSL	(accountHolderName, bankAccountNr, bankName, bankLocation, bankLocationId, creditScoring?)>
+<!ELEMENT PERMANENT_SIGNED_DD_NL-FAX EMPTY>
+<!ELEMENT SINGLE_UNSIGNED_DD_NL-SSL (BankAccount_NL)>
+<!ELEMENT SINGLE_UNSIGNED_DD_FR-SSL (BankAccount_FR)>
+<!ELEMENT SINGLE_UNSIGNED_DD_ES-SSL (bankAccount-ES)>
+<!ELEMENT PERMANENT_SIGNED_DD_GB-SSL (bankAccount-GB)>
+<!ELEMENT SINGLE_SIGNED_DD_ES-SSL (bankAccount-ES)>
+<!ELEMENT PAYOUT-BANK EMPTY>
+<!ELEMENT PAYPAL-EXPRESS (successURL, failureURL, cancelURL)>
+<!ATTLIST PAYPAL-EXPRESS firstInBillingRun (true|false) #IMPLIED>
+<!ELEMENT NCPB2B-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+<!ELEMENT NCPSEASON-SSL		 (cardNumber, expiryDate, cardHolderName, cvc?, cardAddress?,cardSwipe? )>
+
+<!ELEMENT cardSwipe (track*)>
+<!ELEMENT track (#PCDATA)>
+<!ATTLIST track number (1|2|3|4) #REQUIRED>
+
+<!ELEMENT localDateTimeAtPOS (date)>
+
+<!ELEMENT session EMPTY>
+<!ATTLIST session  shopperIPAddress	NMTOKEN  #IMPLIED
+                   id               NMTOKEN  #IMPLIED >
+<!-- CHILD ELEMENTS OF PAYPAL-EXPRESS -->
+<!ELEMENT successURL (#PCDATA )>
+<!ELEMENT failureURL (#PCDATA )>
+<!ELEMENT cancelURL (#PCDATA )>
+
+<!-- CHILD ELEMENTS OF CB-SSL, CARTEBLEUE-SSL, VISA-SSL, -->
+<!-- DISCOVER-SSL, JCB-SSL, LASER-SSL, DANKORT-SSL, JCB-SSL, -->
+<!-- ECMC-SSL, AMEX-SSL, DINERS-SSL, AURORE-SSL, GECAPITAL, -->
+<!-- NCPB2B-SSL, NCPSEASON-SSL, BHS-SSL, IKEA-SSL ELEMENT -->
+<!-- =================================================== -->
+<!ELEMENT cardNumber  (#PCDATA )>
+<!ELEMENT expiryDate  (date )>
+<!ELEMENT cardHolderName  (#PCDATA )>
+<!ELEMENT cvc  (#PCDATA )>
+<!-- the cardAddress element represents the address of -->
+<!-- the card holder or, where appliccable, account holder -->
+<!ELEMENT cardAddress  (address )>
+
+<!-- CHILD ELEMENTS of SINGLE_UNSIGNED_DD_NL-SSL -->
+<!-- BankAccount_NL is deprecated for use in new elements, instead
+     bankAccount-NL must be used.
+     Use is still required within a SINGLE_UNSIGNED_DD_NL-SSL element -->
+<!ELEMENT BankAccount_NL (bankAccountNr, accountHolderName, accountHolderResidence)>
+
+<!-- CHILD ELEMENTS of SINGLE_UNSIGNED_DD_FR-SSL -->
+<!-- The element BankAccount_FR represents a french -->
+<!-- bank account which consists of 5 elements:     -->
+<!-- the bankCode (code &eacute;tablissement),      -->
+<!-- the branchCode (code guichet),                 -->
+<!-- the bankAccountNr,                             -->
+<!-- the controlCode (cl&eacute; RIB) and           -->
+<!-- the accountHolderName                          -->
+<!-- BankAccount_FR is deprecated for use in new elements, instead
+     bankAccount-FR must be used.
+     Use is still required within a SINGLE_UNSIGNED_DD_FR-SSL element -->
+<!ELEMENT BankAccount_FR (bankCode, branchCode, bankAccountNr, controlCode, accountHolderName)>
+
+<!-- Convenience container element for country-specific bank accounts. -->
+<!ELEMENT bankAccount (
+        bankAccount-AT|
+        bankAccount-BE|
+        bankAccount-CA|
+        bankAccount-CH|
+        bankAccount-CZ|
+        bankAccount-DE|
+        bankAccount-DK|
+        bankAccount-EE|
+        bankAccount-ES|
+        bankAccount-FI|
+        bankAccount-FR|
+        bankAccount-GB|
+        bankAccount-GR|
+        bankAccount-HU|
+		bankAccount-JP|
+        bankAccount-HK|
+        bankAccount-IE|
+        bankAccount-IT|
+        bankAccount-LU|
+        bankAccount-NL|
+        bankAccount-NO|
+        bankAccount-PL|
+        bankAccount-PT|
+        bankAccount-SE|
+        bankAccount-SG|
+        bankAccount-US|
+        bankAccount-ZA
+    )>
+
+<!-- Austrian bank account
+     bankAccountNr (Kontonummer) 4-11 digits
+     branchCode (Bankleitzahl)   5 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-AT (swiftCode?, bankAccountNr, branchCode, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Australian bank account
+     bankCode       3 digits
+     branchCode     3 digits
+     bankAccountNr  9 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-AU (swiftCode?, bankCode, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Belgian bank account
+     bankCode      3 digits
+     bankAccountNr 7 digits
+     controlCode   2 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-BE (swiftCode?, bankCode, bankAccountNr, controlCode, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Canadian bank account
+     bankCode      4 digits
+     branchCode    5 digits
+     bankAccountNr 12 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-CA (swiftCode?, bankCode, branchCode, bankAccountNr, bankName, bankAddress, bankCity,  accountHolderName)>
+<!-- Swiss bank account
+     branchCode (Clearingnummer) 5 digits
+     bankAccountNr (Kontonummer) 1-16 digits/characters
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-CH (swiftCode?, branchCode, bankAccountNr, bankName, bankAddress?, bankCity, accountHolderName)>
+<!-- Czech republic bank account
+     bankCode		4 digits
+     branchCode		(First part/prefix) 0-6 digits
+     bankAccountNr	(Second part/basic) 2-10 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-CZ (swiftCode?, bankCode, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- German bank account
+     branchCode (Bankleitzahl)   8 digits
+     bankAccountNr (Kontonummer) 1-10 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-DE (swiftCode?, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Danish bank account
+     bankCode (Registreringsnummer) 4 digits
+     bankAccountNr (Kontonummer)    10 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-DK (swiftCode?, bankCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Estonian bank account
+     bankAccountNr 4-14 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-EE (swiftCode?, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Spanish bank account
+     bankCode (Codigo de entidad) 4 digits
+     branchCode (Codigo de oficina) 4 digits
+     controlCode (Digitos de control) 2 digits
+     bankAccountNr (Numero de cuenta) 10 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-ES (swiftCode?, bankCode, branchCode, controlCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Finnish bank account
+     bankCode      6 digits
+     bankAccountNr 2-8 digits (including check-digit)
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-FI (swiftCode?, bankCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- French bank account
+     bankCode (Code banque)           5 digits
+     branchCode (Code guichet)        5 digits
+     bankAccountNr (Numero de compte) 11 digits/characters
+     controlCode (Cle de controle)    2 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-FR (swiftCode?, bankCode, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, controlCode, accountHolderName)>
+<!-- UK bank account
+     branchCode (Sort Code)     6 digits
+     bankAccountNr (Account Number) 7/8 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-GB (swiftCode?, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Greek bank account
+     bankCode (Kodikos Trapezas)       1-3 digits
+     branchCode (Kodikos Katastimatos) 1-4 digits
+     bankAccountNr                     8-16 digits/characters
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-GR (swiftCode?, bankCode?, branchCode?, bankAccountNr, bankName, bankAddress?, bankCity, accountHolderName)>
+<!-- Hong Kong bank account
+     bankCode      3 digits
+     branchCode    3 digits
+     bankAccountNr 1-10 digits
+     bankName      non empty string
+     bankAddress   non empty string
+     bankCity      non empty string -->
+<!ELEMENT bankAccount-HK (swiftCode?, bankCode, branchCode, bankAccountNr, bankName, bankAddress, bankCity, accountHolderName)>
+<!-- Hungarian bank account
+     bankCode		8 digits (last digit is check digit)
+     bankAccountNr	8-16 digits (last digit is check digit)
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-HU (swiftCode?, bankCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Irish bank account
+     branchCode (Sorting code)      6 digits
+     bankAccountNr (Account number) 8 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-IE (swiftCode?, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Italian bank account
+     controlCode (CIN)               1 letter
+     bankCode (ABI code)             5 digits
+     branchCode (CAB code)           5 digits
+     bankAccountNr (Numero di Conto) 12 digits/characters
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-IT (swiftCode?, controlCode, bankCode, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Japanese bank account
+     bankCode			numeric bank code
+     bankAccountNr		numeric account number (up to 12 digits)
+     bankName			bank name in English
+     bankNameLocal		bank name in local language
+     bankAddress		bank address
+     bankCity			bank city
+     branchName			branch name in English
+     branchNameLocal		branch name in local language
+     branchCode			branch code
+     accountHolderName		account holder name in English
+     accountHolderNameLocal 	account holder name in local language  -->
+<!ELEMENT bankAccount-JP (swiftCode?, bankCode, bankAccountNr, bankName?, bankNameLocal?, bankAddress?, bankCity?, branchName?, branchNameLocal?, branchCode?, accountHolderName?, accountHolderNameLocal?)>
+<!-- Luxemburgian bank account
+     bankCode      3 digits
+     bankAccountNr 13 digits
+     controlCode   2 digits(IBAN check digits)
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-LU (swiftCode?, controlCode, bankCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Dutch bank account
+     bankAccountNr (Rekeningnummer) 3-9 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-NL (swiftCode?, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Norwegian bank account
+     bankAccountNr (Kontonummer) 11 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-NO (swiftCode?, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- New Zealand bank account
+     bankCode       4 digits
+     branchCode     3 digits
+     bankAccountNr  7 digits
+	 controlCode    2 digits(check digits)
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-NZ (swiftCode?, bankCode, branchCode, bankAccountNr, bankName?, bankAddress?, bankCity?, controlCode, accountHolderName)>
+<!-- Polish bank account
+     bankCode      8 digits
+     bankAccountNr 16 digits
+     controlCode   2 digits(IBAN check digits)
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-PL (swiftCode?, controlCode, bankCode, bankAccountNr, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Portuguese bank account
+     bankCode (Codigo de Banco)       4 digits
+     branchCode (Codigo de Balcao)    4 digits
+     bankAccountNr (Numero de compte) 11 digits/characters
+     controlCode (Cle de controle)    2 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-PT (swiftCode?, bankCode, branchCode, bankAccountNr, controlCode, bankName?, bankAddress?, bankCity?, accountHolderName)>
+<!-- Swedish bank account
+     bankCode       4-5 digits
+     bankAccountNr  1-9 digits
+     controlCode    1 digit
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-SE (swiftCode?, bankCode, bankAccountNr, controlCode,bankName?, bankAddress?, bankCity?,  accountHolderName)>
+<!-- Singaporean bank account
+     bankCode       4 digits
+     branchCode     3 digits
+     bankAccountNr  9 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string -->
+<!ELEMENT bankAccount-SG (swiftCode?, bankCode, branchCode, bankAccountNr, bankName, bankAddress?, bankCity, accountHolderName)>
+<!-- US bank account
+     branchCode (Sort code) 9 digits
+     bankAccountNr          1-17 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string -->
+<!ELEMENT bankAccount-US (swiftCode?, branchCode, bankAccountNr, accountHolderName, accountHolderCity,  bankName, bankAddress, bankCity)>
+<!-- South African bank account
+     branchCode     6 digits
+     bankAccountNr  1-9 digits
+     bankName       non empty string
+     bankAddress    non empty string
+     bankCity       non empty string  -->
+<!ELEMENT bankAccount-ZA (swiftCode, branchCode, bankAccountNr, bankName, bankAddress?, bankCity?, accountHolderName)>
+
+
+<!-- name of the account holder -->
+<!ELEMENT accountHolderName  (#PCDATA )>
+<!-- name of the account holder in local language -->
+<!ELEMENT accountHolderNameLocal (#PCDATA)>
+<!-- accountHolderResidence is deprecated for new elements,
+     use accountHolderCity instead.
+     Use still required within a BankAccount_NL element -->
+<!ELEMENT accountHolderResidence  (#PCDATA )>
+<!-- accountHolderCity replaces accountHolderResidence -->
+<!ELEMENT accountHolderCity  (#PCDATA )>
+<!-- the SWIFT code of the bank -->
+<!ELEMENT swiftCode  (#PCDATA )>
+<!-- the bank code -->
+<!ELEMENT bankCode  (#PCDATA )>
+<!-- the branch code -->
+<!ELEMENT branchCode  (#PCDATA )>
+<!-- the control code, or check-digit -->
+<!ELEMENT controlCode  (#PCDATA )>
+<!-- customer's account nr -->
+<!ELEMENT bankAccountNr  (#PCDATA )>
+<!-- the name of the bank -->
+<!ELEMENT bankName  (#PCDATA )>
+<!-- the name of the bank in local language -->
+<!ELEMENT bankNameLocal (#PCDATA)>
+<!-- the city of the bank -->
+<!ELEMENT bankCity  (#PCDATA )>
+<!-- the addresss of the bank -->
+<!ELEMENT bankAddress  (#PCDATA )>
+<!-- the name of the branch -->
+<!ELEMENT branchName (#PCDATA)>
+<!-- the name of the branch in local language -->
+<!ELEMENT branchNameLocal (#PCDATA)>
+
+<!-- Location of the bank in Germany -->
+<!ELEMENT bankLocation  (#PCDATA )>
+<!-- Unique bank code for a bank located in Germany -->
+<!ELEMENT bankLocationId (#PCDATA)>
+
+<!-- CHILD ELEMENTS OF creditScoring ELEMENT -->
+<!-- credit scoring is only available for merchants -->
+<!-- with a  guaranteed payment agreement with InterCard -->
+<!ELEMENT creditScoring (birthDate,address)>
+<!-- The birthDate element represents the date of birth -->
+<!-- of the account holder, which is used in credit scoring -->
+<!ELEMENT birthDate	(date)>
+
+<!-- CHILD ELEMENTS OF MAESTRO-SSL, SOLO_GB-SSL ELEMENT -->
+<!ELEMENT issueNumber (#PCDATA)>
+
+<!-- CHILD ELEMENT OF paymentDetails ELEMENT -->
+<!ELEMENT EMV_Request (application, issuerCardData, terminal,transaction,unpredictable)>
+
+<!ELEMENT application (ICCCryptogramInformation,ICCCryptogramType,ICCAppUsageControl?,
+						ICCAppId,cryptogram,interchangeProfile,transactionCounter)>
+
+<!ELEMENT ICCCryptogramInformation (#PCDATA)>
+<!ELEMENT ICCCryptogramType (#PCDATA)>
+<!ELEMENT ICCAppUsageControl (#PCDATA)>
+<!ELEMENT ICCAppId (#PCDATA)>
+<!ELEMENT cryptogram (#PCDATA)>
+<!ELEMENT interchangeProfile (#PCDATA)>
+<!ELEMENT transactionCounter (#PCDATA)>
+
+<!ELEMENT issuerCardData (ICCIssuerActionCode,applicationData,track?,applicationPANSequenceNumber?)>
+<!ELEMENT ICCIssuerActionCode (#PCDATA)>
+<!ELEMENT applicationData (#PCDATA)>
+<!ELEMENT applicationPANSequenceNumber (#PCDATA)>
+
+<!ELEMENT terminal (TAVN,capabilities,verificationResults)>
+<!ATTLIST terminal countryCode NMTOKEN #REQUIRED
+                   type        NMTOKEN #IMPLIED >
+
+<!ELEMENT TAVN (#PCDATA)>
+<!ELEMENT capabilities (#PCDATA)>
+<!ELEMENT verificationResults (#PCDATA)>
+<!ELEMENT additionalCapabilities (#PCDATA)>
+
+<!ELEMENT transaction (ICCTrxStatus,ICCVerificationType,ICCVerificationResult,reasonForOnline?)>
+<!ELEMENT ICCTrxStatus (#PCDATA)>
+<!ELEMENT ICCVerificationType (#PCDATA)>
+<!ELEMENT ICCVerificationResult (#PCDATA)>
+<!ELEMENT reasonForOnline (#PCDATA)>
+
+<!ELEMENT unpredictable (#PCDATA)>
+
+
+
+<!ELEMENT EMV_Response (authenticationData,script)>
+<!ELEMENT authenticationData (ARPC,authorisationResponseCode)>
+<!ELEMENT script (#PCDATA)>
+<!ELEMENT ARPC (#PCDATA)>
+<!ELEMENT authorisationResponseCode (#PCDATA)>
+
+<!-- CHILD ELEMENTS OF JOURNAL ELEMENT -->
+<!-- the accountType's AUTHORISED, CAPTURED, IN_PROCESS, FOREX, SETTLED_ACQUIRER_TOTAL are obsolete from version 1.4 and on -->
+<!-- ================================= -->
+<!ELEMENT accountTx  (amount )>
+<!ATTLIST accountTx  accountType  (AUTHORISED |
+                                   CAPTURED |
+                                   IN_PROCESS |
+                                   FOREX |
+                                   DEPOSIT |
+                                   IN_PROCESS_AUTHORISED |
+                                   IN_PROCESS_CAPTURED |
+                                   IN_PROCESS_SENT_FOR_AUTH |
+                                   PAYOUT |
+                                   SETTLED_BIBIT_NET |
+                                   SETTLED_BIBIT_COMMISSION |
+                                   SETTLED_ACQUIRER_TOTAL )  #REQUIRED
+					 batchId NMTOKEN #IMPLIED>
+
+<!ELEMENT journalReference EMPTY>
+<!ATTLIST journalReference type      NMTOKEN  #REQUIRED
+                           reference CDATA    #IMPLIED >
+
+<!-- CHILD ELEMENTS OF PAYMENT ELEMENT -->
+<!-- ================================= -->
+<!ELEMENT paymentMethodDetail		(card?)>
+<!ELEMENT card	(issueNumber?,expiryDate?)>
+<!ATTLIST card	number        CDATA  #IMPLIED
+					type (creditcard | debitcard) #IMPLIED>
+<!ELEMENT balance		(amount )>
+<!ATTLIST balance		accountType NMTOKEN  #REQUIRED >
+<!ELEMENT paymentMethod		(#PCDATA )>
+<!ELEMENT ISO8583ReturnCode	EMPTY>
+<!ATTLIST ISO8583ReturnCode	code        NMTOKEN  #REQUIRED
+                        	description CDATA    #REQUIRED >
+<!ELEMENT lastEvent		(#PCDATA )>
+<!ELEMENT AuthorisationId EMPTY>
+<!ATTLIST AuthorisationId  id NMTOKEN  #REQUIRED >
+<!ATTLIST AuthorisationId  by NMTOKEN  #IMPLIED >
+
+<!ELEMENT CVCResultCode	EMPTY>
+<!ATTLIST CVCResultCode description NMTOKENS #REQUIRED >
+<!ELEMENT AVSResultCode	EMPTY>
+<!ATTLIST AVSResultCode description NMTOKENS #REQUIRED >
+<!ELEMENT ThreeDSecureResult	EMPTY>
+<!ATTLIST ThreeDSecureResult description NMTOKENS #REQUIRED >
+<!ELEMENT issuerCountryCode		(#PCDATA )>
+
+<!ELEMENT riskScore EMPTY>
+<!ATTLIST riskScore value CDATA #REQUIRED
+					provider CDATA #IMPLIED
+					id CDATA #IMPLIED
+					message CDATA #IMPLIED >
+
+<!-- CHILD ELEMENTS OF ORDERMODIFICATION ELEMENT -->
+<!-- ================================================== -->
+<!ELEMENT cancel (localDateTimeAtPOS?)>
+<!-- The cancel immediate attribute can only used for EMV transactions.
+     If the merchant is not participating in EMV the value is not checked.
+     When the value is set to 'yes', a cancel will be processed directly, 
+     and not saved as batch.
+     Of course the Shoppercell of the authorisation and the cancel should 
+     be the same! -->
+<!ATTLIST cancel immediate (yes|no) 'no' >
+<!ELEMENT cancelOrRefund EMPTY>
+<!ELEMENT capture  (localDateTimeAtPOS?, date?, amount, (cryptogram, ICCTrxStatus, verificationResults)?, branchSpecificExtension? )>
+<!ATTLIST capture reference CDATA #IMPLIED >
+<!ELEMENT refund  (amount, branchSpecificExtension? )>
+<!ATTLIST refund reference CDATA #IMPLIED >
+<!ELEMENT addBackOfficeCode EMPTY>
+<!ATTLIST addBackOfficeCode backOfficeCode CDATA #REQUIRED >
+<!ELEMENT authorise EMPTY>
+<!ATTLIST authorise authorisationCode CDATA #REQUIRED >
+<!ELEMENT increaseAuthorisation (amount)>
+
+<!-- CHILD ELEMENTS OF ORDERINQUIRY ELEMENT -->
+<!-- ====================================== -->
+<!ELEMENT cardSearch	(startDate )>
+<!ATTLIST cardSearch	cardNumber NMTOKEN  #REQUIRED >
+<!ELEMENT creationDate	(date )>
+<!ELEMENT fromDate	(date )>
+<!ELEMENT untilDate	(date )>
+<!ELEMENT bookingDate	(date )>
+<!ELEMENT lastDate	(date )>
+<!ELEMENT startDate	(date )>
+<!ELEMENT date EMPTY>
+<!ATTLIST date  dayOfMonth NMTOKEN  #IMPLIED
+                month      NMTOKEN  #REQUIRED
+                year       NMTOKEN  #REQUIRED
+                hour       NMTOKEN  #IMPLIED
+                minute     NMTOKEN  #IMPLIED
+                second     NMTOKEN  #IMPLIED >
+
+<!-- CHILD ELEMENTS OF SHOPPER ELEMENT -->
+<!-- ===================================== -->
+<!ELEMENT shopperEmailAddress		(#PCDATA )>
+<!ELEMENT authenticatedShopperID	(#PCDATA )>
+
+
+
+
+<!-- CHILD ELEMENTS OF ALL ADDRESS ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT address  (	firstName?,
+			lastName?,
+			street,
+			houseName?,
+			houseNumber?,
+			houseNumberExtension?,
+			postalCode,
+			city?,
+			state?,
+ 			countryCode,
+			telephoneNumber? )>
+
+<!-- CHILD ELEMENTS OF ADDRESS ELEMENT -->
+<!-- ================================= -->
+<!ELEMENT firstName		(#PCDATA )>
+<!ELEMENT lastName		(#PCDATA )>
+<!ELEMENT street		(#PCDATA )>
+<!ELEMENT houseName		(#PCDATA )>
+<!ELEMENT houseNumber		(#PCDATA )>
+<!ELEMENT houseNumberExtension	(#PCDATA )>
+<!ELEMENT postalCode		(#PCDATA )>
+<!ELEMENT city			(#PCDATA )>
+<!ELEMENT state			(#PCDATA )>
+<!ELEMENT countryCode		(#PCDATA )>
+<!ELEMENT telephoneNumber	(#PCDATA )>
+
+<!-- CHILD ELEMENTS OF ALL HOTEL ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT hotel  (	checkInDate, checkOutDate      )>
+
+<!-- CHILD ELEMENTS OF ALL CHECKINDATE ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT checkInDate  (	date	)>
+
+<!-- CHILD ELEMENTS OF ALL CHECKOUTDATE ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT checkOutDate  (	date	)>
+
+<!-- CHILD ELEMENTS OF ALL AIRLINE ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT airline  (	airlineName,
+						passenger,
+						(ticket|nonTicket),
+						agent )>
+<!-- Code, length 3, consists of the IATA airline code -->
+<!ATTLIST airline	code NMTOKEN #REQUIRED
+					planNumber (03|06|09|12|00) #IMPLIED>
+
+<!-- CHILD ELEMENTS OF ALL AIRLINENAME ELEMENTS -->
+<!-- ================================= -->
+<!-- Contains the name of an airline as it may appear on a bill -->
+<!ELEMENT	airlineName  (	#PCDATA )>
+
+<!-- CHILD ELEMENTS OF ALL PASSENGER ELEMENTS -->
+<!-- ================================= -->
+<!-- Contains the name of a passenger  -->
+<!ELEMENT	passenger  (	#PCDATA	)>
+<!ATTLIST	passenger	code NMTOKEN #REQUIRED>
+
+<!-- CHILD ELEMENTS OF ALL TICKET ELEMENTS -->
+<!-- ================================= -->
+<!-- Code consists of the ticket number -->
+<!ELEMENT ticket  (	issuer,
+					flight*	)>
+<!ATTLIST ticket	code NMTOKEN #REQUIRED
+					restricted (0|1) #REQUIRED>
+
+<!-- CHILD ELEMENTS OF ALL NONTICKET ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT nonTicket  (	#PCDATA	)>
+
+<!-- CHILD ELEMENTS OF ALL AGENT ELEMENTS -->
+<!-- ================================= -->
+<!-- Code, length 8, consists of the IATA travel agency code -->
+<!-- Agent element, contains name of travel agent -->
+<!ELEMENT agent	(	#PCDATA )>
+<!ATTLIST agent	code NMTOKEN #REQUIRED>
+
+<!-- CHILD ELEMENTS OF ALL ISSUER ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT issuer  (	address )>
+
+<!-- CHILD ELEMENTS OF ALL FLIGHT ELEMENTS -->
+<!-- ================================= -->
+<!-- carrierCode, length 2, consists of the IATA carrier code -->
+<!ELEMENT flight  (	departureAirport,
+					arrivalAirport,
+					departureDate,
+					fare,
+					tax	)>
+<!ATTLIST flight	carrierCode NMTOKEN #REQUIRED
+					stopOverCode (0|1) #IMPLIED
+					domestic     (0|1) #IMPLIED >
+
+<!-- CHILD ELEMENTS OF ALL DEPARTUREAIRPORT ELEMENTS -->
+<!-- ================================= -->
+<!-- Consists of the 3 chars IATA airport code -->
+<!ELEMENT departureAirport  (	#PCDATA )>
+
+<!-- CHILD ELEMENTS OF ALL ARRIVALAIRPORT ELEMENTS -->
+<!-- ================================= -->
+<!-- Consists of the 3 chars IATA airport code -->
+<!ELEMENT arrivalAirport  (	#PCDATA )>
+
+<!-- CHILD ELEMENTS OF ALL DEPARTUREDATE ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT departureDate  (	date	)>
+
+<!-- CHILD ELEMENTS OF ALL FARE ELEMENTS -->
+<!-- ================================= -->
+<!-- class consists of the single character IATA
+		travel class code -->
+<!ELEMENT fare 	EMPTY>
+<!ATTLIST fare	class NMTOKEN #REQUIRED
+				basis NMTOKEN #IMPLIED>
+
+<!-- CHILD ELEMENTS OF ALL FARE ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT tax 	(	amount	)	>
+
+<!-- CHILD ELEMENTS OF ALL PURCHASE ELEMENTS -->
+<!-- ================================= -->
+<!ELEMENT purchase (	costCenter,
+						shopperVATNumber,
+                        merchantVATNumber,
+						purchaseCardAccount?,
+						invoiceNumber?,
+						invoiceDate?,
+						invoiceTreatment?,
+						poNumber?,
+						customerReference?,
+						buyerAddress?,
+						item*,
+                        freight*,
+                        total)>
+
+<!ELEMENT costCenter (#PCDATA)>
+<!ELEMENT item (	description,
+					commodity,
+					netUnitPrice,
+					netDiscount,
+					grossAmount,
+					VAT,
+					taxCategory?)>
+<!ATTLIST item	quantity NMTOKEN #REQUIRED
+				unit NMTOKEN #REQUIRED>
+
+<!ELEMENT freight (	departure,
+					destination,
+					netAmount,
+					grossAmount,
+					VAT)>
+<!ELEMENT total (	netAmount,
+					netDiscount,
+					VAT)>
+<!-- GRANDCHILD ELEMENTS OF ALL PURCHASE ELEMENTS -->
+<!-- ================================= -->
+<!-- if Vatnumber doesn't start with two character language code, it may be
+prefixed with the destination CountryCode in the case of the Shopper and
+with the departure countryCode in case of the merchant VAT number -->
+
+<!ELEMENT shopperVATNumber			(#PCDATA )>
+<!ELEMENT merchantVATNumber			(#PCDATA )>
+<!ELEMENT purchaseCardAccount		(#PCDATA )>
+
+<!ELEMENT invoiceNumber				(#PCDATA )>
+<!ELEMENT invoiceDate	  			(date)>
+
+<!ELEMENT invoiceTreatment			EMPTY>
+<!ATTLIST invoiceTreatment  		code  (E | P | S)  #IMPLIED>
+
+<!ELEMENT poNumber					(#PCDATA )>
+<!ELEMENT customerReference			(#PCDATA )>
+<!ELEMENT buyerAddress				(address )>
+
+<!ELEMENT taxCategory				EMPTY>
+<!ATTLIST taxCategory  				code  (A | E | G | S | Z)  #IMPLIED>
+
+<!ELEMENT commodity EMPTY>
+<!ATTLIST commodity	code NMTOKEN #REQUIRED>
+
+<!ELEMENT netUnitPrice (amount)>
+
+<!ELEMENT netDiscount (amount)>
+
+<!ELEMENT grossAmount (amount)>
+
+<!ELEMENT netAmount (amount)>
+
+<!ELEMENT VAT EMPTY>
+<!ATTLIST VAT percentage NMTOKEN #REQUIRED>
+
+<!ELEMENT 	departure EMPTY>
+<!ATTLIST departure 	countryCode NMTOKEN #REQUIRED
+						zipCode NMTOKEN #REQUIRED>
+
+
+<!ELEMENT 	destination EMPTY>
+<!ATTLIST destination 	countryCode NMTOKEN #REQUIRED
+						zipCode NMTOKEN #REQUIRED>
+
+
+
